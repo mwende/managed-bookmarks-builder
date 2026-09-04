@@ -27,10 +27,8 @@ Aus **einem** Lesezeichen-Baum erzeugt das Tool wahlweise:
 `managed-bookmarks-builder.html` im Browser öffnen, Baum pflegen, Plattform und
 Browser wählen, generiertes Fragment kopieren und in Intune einfügen.
 
-## Beispiel-Konfigurationen
+## Beispiel-Konfiguration
 
-- `wendeit.xml` – WendeIT-Favoriten für Chrome (macOS plist-XML)
-- `wendeit-edge.xml` – dieselben Favoriten für Edge (macOS plist-XML)
 - `ManagedBookmarks-com.google.Chrome.xml` – generisches Beispiel
 
 ---
