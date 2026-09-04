@@ -1,0 +1,38 @@
+<key>ManagedBookmarks</key>
+<array>
+	<dict>
+		<key>toplevel_name</key>
+		<string>Company Bookmarks</string>
+	</dict>
+	<dict>
+		<key>name</key>
+		<string>Company Intranet</string>
+		<key>url</key>
+		<string>https://intranet.example.com</string>
+	</dict>
+	<dict>
+		<key>name</key>
+		<string>IT Support</string>
+		<key>url</key>
+		<string>https://support.example.com</string>
+	</dict>
+	<dict>
+		<key>name</key>
+		<string>Tools</string>
+		<key>children</key>
+		<array>
+			<dict>
+				<key>name</key>
+				<string>Ticketing System</string>
+				<key>url</key>
+				<string>https://tickets.example.com</string>
+			</dict>
+			<dict>
+				<key>name</key>
+				<string>Wiki</string>
+				<key>url</key>
+				<string>https://wiki.example.com</string>
+			</dict>
+		</array>
+	</dict>
+</array>

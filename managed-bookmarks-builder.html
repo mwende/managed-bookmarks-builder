@@ -1,0 +1,1090 @@
+<title>Managed Bookmarks Builder</title>
+<style>
+  :root {
+    --paper: #f1f4f3;
+    --paper-raised: #ffffff;
+    --ink: #182123;
+    --ink-soft: #52635f;
+    --ink-faint: #7c8c88;
+    --line: #cfd8d5;
+    --line-strong: #b3bfbb;
+    --accent: #1c7267;
+    --accent-ink: #ffffff;
+    --accent-soft: #e1f0ec;
+    --folder: #b5791f;
+    --folder-soft: #f6ead2;
+    --danger: #a8402a;
+    --danger-soft: #f8e4de;
+    --focus: #1c7267;
+
+    --term-bg: #101819;
+    --term-ink: #dce8e4;
+    --term-ink-soft: #7fa79b;
+    --term-key: #7cc6b6;
+    --term-string: #e0b876;
+    --term-line: #223231;
+
+    --shadow: 0 1px 2px rgba(15, 30, 27, 0.06), 0 6px 20px -8px rgba(15, 30, 27, 0.18);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #101617;
+      --paper-raised: #1a2224;
+      --ink: #e7eeec;
+      --ink-soft: #9db2ac;
+      --ink-faint: #6f8681;
+      --line: #2b3736;
+      --line-strong: #3b4a48;
+      --accent: #57bfa9;
+      --accent-ink: #0b1615;
+      --accent-soft: rgba(87, 191, 169, 0.14);
+      --folder: #e0ab54;
+      --folder-soft: rgba(224, 171, 84, 0.14);
+      --danger: #e2775f;
+      --danger-soft: rgba(226, 119, 95, 0.14);
+      --focus: #57bfa9;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 26px -10px rgba(0, 0, 0, 0.55);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #101617;
+    --paper-raised: #1a2224;
+    --ink: #e7eeec;
+    --ink-soft: #9db2ac;
+    --ink-faint: #6f8681;
+    --line: #2b3736;
+    --line-strong: #3b4a48;
+    --accent: #57bfa9;
+    --accent-ink: #0b1615;
+    --accent-soft: rgba(87, 191, 169, 0.14);
+    --folder: #e0ab54;
+    --folder-soft: rgba(224, 171, 84, 0.14);
+    --danger: #e2775f;
+    --danger-soft: rgba(226, 119, 95, 0.14);
+    --focus: #57bfa9;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 26px -10px rgba(0, 0, 0, 0.55);
+  }
+
+  * { box-sizing: border-box; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+    padding: clamp(20px, 4vw, 48px);
+    display: flex;
+    justify-content: center;
+  }
+
+  .page { width: 100%; max-width: 1180px; display: flex; flex-direction: column; gap: 22px; }
+
+  header.top {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  h1 {
+    font-family: "Archivo", "IBM Plex Sans", sans-serif;
+    font-weight: 800;
+    font-size: clamp(26px, 3.4vw, 34px);
+    letter-spacing: -0.01em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .sub {
+    color: var(--ink-soft);
+    font-size: 14.5px;
+    max-width: 62ch;
+    line-height: 1.55;
+  }
+
+  .toplevel-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .toplevel-row label {
+    font-size: 13px;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+
+  .seg {
+    display: inline-flex;
+    padding: 2px;
+    gap: 2px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  .seg-btn {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+    padding: 5px 12px;
+    cursor: pointer;
+  }
+
+  .seg-btn[aria-pressed="true"] {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  .seg-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+  .toplevel-row input {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  main.grid {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  @media (max-width: 860px) {
+    main.grid { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .panel-head h2 {
+    font-family: "Archivo", sans-serif;
+    font-size: 14.5px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    margin: 0;
+  }
+
+  .panel-head .count {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+
+  .panel-body { padding: 14px 16px 18px; }
+
+  .tree-body { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+
+  .empty-state {
+    color: var(--ink-faint);
+    font-size: 13.5px;
+    padding: 18px 10px;
+    text-align: center;
+    border: 1px dashed var(--line-strong);
+    border-radius: 8px;
+  }
+
+  .node {
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--paper);
+  }
+
+  .node.folder > .node-row { background: var(--folder-soft); }
+
+  .node-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 10px;
+    border-radius: 9px 9px 0 0;
+  }
+
+  .node:not(.has-children) .node-row,
+  .node.folder.collapsed .node-row { border-radius: 9px; }
+
+  .badge {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 7px;
+    border-radius: 5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .badge.bookmark { background: var(--accent-soft); color: var(--accent); }
+  .badge.folder { background: var(--folder-soft); color: var(--folder); }
+
+  .node-fields { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+  .node-fields .field-row { display: flex; gap: 6px; }
+
+  input[type="text"], input[type="url"] {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 13.5px;
+    color: var(--ink);
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 9px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .node-fields .url-input { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; }
+
+  input::placeholder { color: var(--ink-faint); }
+
+  input:focus-visible, button:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 1px;
+  }
+
+  .node-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+  .icon-btn {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--line);
+    background: var(--paper-raised);
+    color: var(--ink-soft);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+  }
+
+  .icon-btn:hover { border-color: var(--line-strong); color: var(--ink); }
+  .icon-btn.danger:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-soft); }
+
+  .node-children {
+    padding: 8px 8px 8px 20px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+  }
+
+  .node-children::before {
+    content: "";
+    position: absolute;
+    left: 12px;
+    top: 0;
+    bottom: 12px;
+    width: 1px;
+    background: var(--line-strong);
+  }
+
+  .add-row { display: flex; gap: 6px; padding-top: 2px; }
+
+  .btn {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    border-radius: 6px;
+    padding: 6px 11px;
+    cursor: pointer;
+    border: 1px solid var(--line);
+    background: var(--paper-raised);
+    color: var(--ink);
+  }
+
+  .btn:hover { border-color: var(--line-strong); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn.primary:hover { filter: brightness(1.06); }
+  .btn.ghost { background: transparent; }
+  .btn.small { padding: 5px 9px; font-size: 12px; }
+
+  .root-add-row { display: flex; gap: 8px; padding: 4px 12px 12px; flex-wrap: wrap; }
+
+  .import-status { padding: 0 12px 14px; font-size: 12.5px; min-height: 0; }
+  .import-status.success { color: var(--accent); }
+  .import-status.error { color: var(--danger); }
+
+  .toolbar { display: flex; gap: 8px; }
+
+  .warn-box {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    background: var(--danger-soft);
+    border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+    color: var(--danger);
+    font-size: 12.5px;
+    padding: 9px 11px;
+    border-radius: 8px;
+    margin: 0 16px 12px;
+    line-height: 1.5;
+  }
+
+  pre.output {
+    margin: 0;
+    background: var(--term-bg);
+    color: var(--term-ink);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    line-height: 1.6;
+    padding: 16px;
+    overflow: auto;
+    max-height: 480px;
+    white-space: pre;
+  }
+
+  pre.output .k { color: var(--term-key); }
+  pre.output .s { color: var(--term-string); }
+  pre.output .t { color: var(--term-ink-soft); }
+
+  .output-wrap { background: var(--term-bg); }
+
+  .copy-flash { transition: background 0.5s ease; }
+
+  .instructions {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+  }
+
+  .instructions ol { margin: 6px 0 0; padding-left: 20px; }
+  .instructions li { margin-bottom: 4px; }
+
+  .instructions code {
+    font-family: "IBM Plex Mono", monospace;
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+
+  details.help {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--paper-raised);
+    box-shadow: var(--shadow);
+  }
+
+  details.help summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 13px 16px;
+    font-family: "Archivo", sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  details.help summary::-webkit-details-marker { display: none; }
+  details.help summary::before { content: "▸"; color: var(--accent); font-size: 11px; }
+  details.help[open] summary::before { content: "▾"; }
+  details.help .panel-body { border-top: 1px solid var(--line); }
+
+  .site-footer {
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    padding: 8px 0 4px;
+    letter-spacing: 0.01em;
+  }
+</style>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<div class="page">
+  <header class="top">
+    <span class="eyebrow" id="eyebrow">com.google.Chrome · macOS preference profile</span>
+    <h1>Managed Bookmarks Builder</h1>
+    <p class="sub">Add bookmarks and folders below — this generates the exact <code id="keyChip" style="font-family:'IBM Plex Mono',monospace;background:var(--accent-soft);color:var(--accent);padding:1px 5px;border-radius:4px;">ManagedBookmarks</code> <span id="formatBlurb">XML fragment for Intune's macOS Preference file profile</span>, kept in sync as you edit.</p>
+  </header>
+
+  <div class="toplevel-row">
+    <span class="seg" role="group" aria-label="Target platform">
+      <button type="button" class="seg-btn" data-platform="macos" aria-pressed="true">macOS</button>
+      <button type="button" class="seg-btn" data-platform="windows" aria-pressed="false">Windows</button>
+    </span>
+    <span class="seg" role="group" aria-label="Target browser">
+      <button type="button" class="seg-btn" data-browser="chrome" aria-pressed="true">Chrome</button>
+      <button type="button" class="seg-btn" data-browser="edge" aria-pressed="false">Edge</button>
+    </span>
+    <label for="toplevel">Bookmarks bar folder name</label>
+    <input type="text" id="toplevel" placeholder="Managed bookmarks">
+  </div>
+
+  <main class="grid">
+    <section class="panel" id="editorPanel">
+      <div class="panel-head">
+        <h2>Bookmark tree</h2>
+        <span class="count" id="entryCount">0 entries</span>
+      </div>
+      <div id="warnBox"></div>
+      <div class="tree-body" id="treeBody"></div>
+      <div class="root-add-row">
+        <button class="btn" id="addBookmarkRoot" type="button">+ Bookmark</button>
+        <button class="btn ghost" id="addFolderRoot" type="button">+ Folder</button>
+        <span style="flex:1"></span>
+        <button class="btn ghost small" id="importXmlBtn" type="button">Import XML</button>
+        <input type="file" id="importXmlFile" accept=".xml,.plist,.mobileconfig,.json,text/xml,application/json" style="display:none">
+        <button class="btn ghost small" id="loadExample" type="button">Load example</button>
+        <button class="btn ghost small" id="clearAll" type="button">Clear all</button>
+      </div>
+      <div id="importStatus" class="import-status" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Generated profile fragment</h2>
+        <button class="btn primary small" id="copyBtn" type="button">Copy XML</button>
+      </div>
+      <div class="output-wrap">
+        <pre class="output" id="output"></pre>
+      </div>
+    </section>
+  </main>
+
+  <details class="help">
+    <summary>How to deploy this in Intune</summary>
+    <div class="panel-body instructions" id="deployInstructions"></div>
+  </details>
+
+  <footer class="site-footer">powered by Marco Wende &middot; WendeIT</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var idCounter = 0;
+  function makeId() { idCounter += 1; return "n" + idCounter + "_" + Math.random().toString(36).slice(2, 7); }
+
+  function defaultTree() {
+    return [
+      { id: makeId(), type: "bookmark", name: "Company Intranet", url: "https://intranet.example.com" },
+      { id: makeId(), type: "bookmark", name: "IT Support", url: "https://support.example.com" },
+      { id: makeId(), type: "folder", name: "Tools", children: [
+        { id: makeId(), type: "bookmark", name: "Ticketing System", url: "https://tickets.example.com" },
+        { id: makeId(), type: "bookmark", name: "Wiki", url: "https://wiki.example.com" }
+      ] }
+    ];
+  }
+
+  var BROWSERS = {
+    chrome: {
+      label: "Chrome", key: "ManagedBookmarks", domain: "com.google.Chrome",
+      winSetting: "Managed Bookmarks", winCat: "Google → Google Chrome",
+      winReg: "HKLM\\SOFTWARE\\Policies\\Google\\Chrome\\ManagedBookmarks"
+    },
+    edge: {
+      label: "Edge", key: "ManagedFavorites", domain: "com.microsoft.Edge",
+      winSetting: "Configure favorites", winCat: "Microsoft Edge",
+      winReg: "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\\ManagedFavorites"
+    }
+  };
+
+  var PLATFORMS = { macos: { label: "macOS" }, windows: { label: "Windows" } };
+
+  var state = { platform: "macos", browser: "chrome", toplevelName: "Company Bookmarks", tree: defaultTree() };
+
+  function currentBrowser() { return BROWSERS[state.browser] || BROWSERS.chrome; }
+  function isWindows() { return state.platform === "windows"; }
+
+  var STORAGE_KEY = "managed-bookmarks-builder-v1";
+
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      var parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.tree)) {
+        if (parsed.platform && PLATFORMS[parsed.platform]) state.platform = parsed.platform;
+        if (parsed.browser && BROWSERS[parsed.browser]) state.browser = parsed.browser;
+        state.toplevelName = typeof parsed.toplevelName === "string" ? parsed.toplevelName : "";
+        state.tree = parsed.tree;
+        (function bumpCounter(nodes) {
+          nodes.forEach(function (n) {
+            var m = /^n(\d+)_/.exec(n.id || "");
+            if (m) idCounter = Math.max(idCounter, parseInt(m[1], 10));
+            if (n.children) bumpCounter(n.children);
+          });
+        })(state.tree);
+      }
+    } catch (e) { /* ignore, keep defaults */ }
+  }
+
+  var saveTimer = null;
+  function saveState() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function () {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable, skip */ }
+    }, 250);
+  }
+
+  function findEntry(nodes, id, parent) {
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].id === id) return { node: nodes[i], siblings: nodes, index: i };
+      if (nodes[i].children) {
+        var found = findEntry(nodes[i].children, id, nodes[i]);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  function addNode(parentId, type) {
+    var newNode = { id: makeId(), type: type, name: "" };
+    if (type === "bookmark") newNode.url = "";
+    else newNode.children = [];
+
+    if (!parentId) {
+      state.tree.push(newNode);
+    } else {
+      var entry = findEntry(state.tree, parentId);
+      if (entry && entry.node.type === "folder") entry.node.children.push(newNode);
+    }
+    saveState();
+    render();
+  }
+
+  function removeNode(id) {
+    var entry = findEntry(state.tree, id);
+    if (entry) {
+      entry.siblings.splice(entry.index, 1);
+      saveState();
+      render();
+    }
+  }
+
+  function moveNode(id, dir) {
+    var entry = findEntry(state.tree, id);
+    if (!entry) return;
+    var newIndex = entry.index + dir;
+    if (newIndex < 0 || newIndex >= entry.siblings.length) return;
+    var tmp = entry.siblings[newIndex];
+    entry.siblings[newIndex] = entry.siblings[entry.index];
+    entry.siblings[entry.index] = tmp;
+    saveState();
+    render();
+  }
+
+  function updateField(id, field, value) {
+    var entry = findEntry(state.tree, id);
+    if (entry) {
+      entry.node[field] = value;
+      saveState();
+      updateOutput();
+    }
+  }
+
+  function esc(str) {
+    return String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+  }
+
+  function nodeToXml(node, indent) {
+    var pad = "\t".repeat(indent);
+    var pad1 = "\t".repeat(indent + 1);
+    var out = pad + "<dict>\n";
+    out += pad1 + "<key>name</key>\n" + pad1 + "<string>" + esc(node.name) + "</string>\n";
+    if (node.type === "bookmark") {
+      out += pad1 + "<key>url</key>\n" + pad1 + "<string>" + esc(node.url) + "</string>\n";
+    } else {
+      out += pad1 + "<key>children</key>\n" + pad1 + "<array>\n";
+      (node.children || []).forEach(function (child) {
+        out += nodeToXml(child, indent + 2) + "\n";
+      });
+      out += pad1 + "</array>\n";
+    }
+    out += pad + "</dict>";
+    return out;
+  }
+
+  function generateXml() {
+    var lines = ["<key>" + currentBrowser().key + "</key>", "<array>"];
+    if (state.toplevelName && state.toplevelName.trim()) {
+      lines.push("\t<dict>");
+      lines.push("\t\t<key>toplevel_name</key>");
+      lines.push("\t\t<string>" + esc(state.toplevelName.trim()) + "</string>");
+      lines.push("\t</dict>");
+    }
+    state.tree.forEach(function (node) { lines.push(nodeToXml(node, 1)); });
+    lines.push("</array>");
+    return lines.join("\n");
+  }
+
+  function nodeToObj(node) {
+    if (node.type === "folder") {
+      return { name: node.name || "", children: (node.children || []).map(nodeToObj) };
+    }
+    return { name: node.name || "", url: node.url || "" };
+  }
+
+  function generateJson() {
+    var arr = [];
+    if (state.toplevelName && state.toplevelName.trim()) {
+      arr.push({ toplevel_name: state.toplevelName.trim() });
+    }
+    state.tree.forEach(function (node) { arr.push(nodeToObj(node)); });
+    return JSON.stringify(arr, null, 2);
+  }
+
+  function generateOutput() {
+    return isWindows() ? generateJson() : generateXml();
+  }
+
+  function highlightXml(xml) {
+    return xml
+      .split("\n")
+      .map(function (line) {
+        var escaped = line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        escaped = escaped.replace(/(&lt;\/?key&gt;|&lt;\/?array&gt;|&lt;\/?dict&gt;)/g, '<span class="t">$1</span>');
+        escaped = escaped.replace(/(&lt;string&gt;)(.*?)(&lt;\/string&gt;)/, function (m, a, b, c) {
+          return '<span class="t">' + a + '</span><span class="s">' + b + '</span><span class="t">' + c + '</span>';
+        });
+        return escaped;
+      })
+      .join("\n");
+  }
+
+  function highlightJson(json) {
+    var escaped = json.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return escaped.replace(/("(?:\\.|[^"\\])*")(\s*:)?/g, function (m, str, colon) {
+      var cls = colon ? "k" : "s";
+      return '<span class="' + cls + '">' + str + "</span>" + (colon || "");
+    });
+  }
+
+  function collectWarnings() {
+    var warnings = [];
+    (function walk(nodes, path) {
+      nodes.forEach(function (n, i) {
+        var label = path + "#" + (i + 1) + (n.name ? " “" + n.name + "”" : " (untitled)");
+        if (!n.name || !n.name.trim()) warnings.push(label + " is missing a name.");
+        if (n.type === "bookmark" && (!n.url || !n.url.trim())) warnings.push(label + " is missing a URL.");
+        if (n.type === "folder") walk(n.children, label + " / ");
+      });
+    })(state.tree, "");
+    return warnings;
+  }
+
+  function countEntries(nodes) {
+    var c = 0;
+    nodes.forEach(function (n) { c += 1; if (n.children) c += countEntries(n.children); });
+    return c;
+  }
+
+  var outputEl = document.getElementById("output");
+  var warnBoxEl = document.getElementById("warnBox");
+  var entryCountEl = document.getElementById("entryCount");
+
+  function updateOutput() {
+    var raw = generateOutput();
+    outputEl.innerHTML = isWindows() ? highlightJson(raw) : highlightXml(raw);
+    outputEl.dataset.raw = raw;
+
+    var warnings = collectWarnings();
+    if (warnings.length) {
+      warnBoxEl.innerHTML = '<div class="warn-box"><span aria-hidden="true">&#9888;</span><span>' + warnings.map(esc).join("<br>") + "</span></div>";
+    } else {
+      warnBoxEl.innerHTML = "";
+    }
+
+    var n = countEntries(state.tree);
+    entryCountEl.textContent = n + (n === 1 ? " entry" : " entries");
+  }
+
+  function makeNodeEl(node) {
+    var wrap = document.createElement("div");
+    wrap.className = "node " + node.type + (node.type === "folder" ? " has-children" : "");
+
+    var row = document.createElement("div");
+    row.className = "node-row";
+
+    var badge = document.createElement("span");
+    badge.className = "badge " + node.type;
+    badge.textContent = node.type === "folder" ? "Folder" : "Bookmark";
+    row.appendChild(badge);
+
+    var fields = document.createElement("div");
+    fields.className = "node-fields";
+
+    var fieldRow1 = document.createElement("div");
+    fieldRow1.className = "field-row";
+    var nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.placeholder = node.type === "folder" ? "Folder name" : "Bookmark name";
+    nameInput.value = node.name || "";
+    nameInput.addEventListener("input", function () { updateField(node.id, "name", nameInput.value); });
+    fieldRow1.appendChild(nameInput);
+    fields.appendChild(fieldRow1);
+
+    if (node.type === "bookmark") {
+      var fieldRow2 = document.createElement("div");
+      fieldRow2.className = "field-row";
+      var urlInput = document.createElement("input");
+      urlInput.type = "url";
+      urlInput.className = "url-input";
+      urlInput.placeholder = "https://example.com";
+      urlInput.value = node.url || "";
+      urlInput.addEventListener("input", function () { updateField(node.id, "url", urlInput.value); });
+      fieldRow2.appendChild(urlInput);
+      fields.appendChild(fieldRow2);
+    }
+
+    row.appendChild(fields);
+
+    var actions = document.createElement("div");
+    actions.className = "node-actions";
+
+    var upBtn = document.createElement("button");
+    upBtn.className = "icon-btn"; upBtn.type = "button"; upBtn.title = "Move up"; upBtn.textContent = "↑";
+    upBtn.addEventListener("click", function () { moveNode(node.id, -1); });
+
+    var downBtn = document.createElement("button");
+    downBtn.className = "icon-btn"; downBtn.type = "button"; downBtn.title = "Move down"; downBtn.textContent = "↓";
+    downBtn.addEventListener("click", function () { moveNode(node.id, 1); });
+
+    var delBtn = document.createElement("button");
+    delBtn.className = "icon-btn danger"; delBtn.type = "button"; delBtn.title = "Delete"; delBtn.textContent = "✕";
+    delBtn.addEventListener("click", function () { removeNode(node.id); });
+
+    actions.appendChild(upBtn);
+    actions.appendChild(downBtn);
+    actions.appendChild(delBtn);
+    row.appendChild(actions);
+
+    wrap.appendChild(row);
+
+    if (node.type === "folder") {
+      var childrenWrap = document.createElement("div");
+      childrenWrap.className = "node-children";
+      node.children.forEach(function (child) { childrenWrap.appendChild(makeNodeEl(child)); });
+
+      var addRow = document.createElement("div");
+      addRow.className = "add-row";
+      var addBookmark = document.createElement("button");
+      addBookmark.className = "btn small"; addBookmark.type = "button"; addBookmark.textContent = "+ Bookmark";
+      addBookmark.addEventListener("click", function () { addNode(node.id, "bookmark"); });
+      var addFolder = document.createElement("button");
+      addFolder.className = "btn ghost small"; addFolder.type = "button"; addFolder.textContent = "+ Folder";
+      addFolder.addEventListener("click", function () { addNode(node.id, "folder"); });
+      addRow.appendChild(addBookmark);
+      addRow.appendChild(addFolder);
+      childrenWrap.appendChild(addRow);
+
+      wrap.appendChild(childrenWrap);
+    }
+
+    return wrap;
+  }
+
+  var treeBodyEl = document.getElementById("treeBody");
+  var eyebrowEl = document.getElementById("eyebrow");
+  var keyChipEl = document.getElementById("keyChip");
+  var formatBlurbEl = document.getElementById("formatBlurb");
+  var deployEl = document.getElementById("deployInstructions");
+  var segBtns = Array.prototype.slice.call(document.querySelectorAll(".seg-btn"));
+
+  function copyLabel() { return "Copy " + (isWindows() ? "JSON" : "XML"); }
+
+  function deployHtml() {
+    var b = currentBrowser();
+    if (isWindows()) {
+      return '<ol>' +
+        '<li>Copy the generated JSON above.</li>' +
+        '<li>In Intune: <strong>Devices &rarr; Configuration &rarr; Create &rarr; New policy</strong> &mdash; Platform <strong>Windows 10 and later</strong>, profile type <strong>Settings catalog</strong>.</li>' +
+        '<li>Add the setting <strong>&ldquo;' + esc(b.winSetting) + '&rdquo;</strong> (under <em>' + esc(b.winCat) + '</em>), paste the JSON as its value, and assign to your device group.</li>' +
+        '</ol>' +
+        '<p style="margin-top:10px">Or via GPO / registry at <code>' + esc(b.winReg) + '</code> as a JSON string, or via OMA-URI with the <code>' + esc(b.key) + '</code> policy.</p>';
+    }
+    return '<ol>' +
+      '<li>Copy the generated fragment above.</li>' +
+      '<li>In Intune: <strong>Devices &rarr; Configuration &rarr; Create &rarr; New policy</strong> &mdash; Platform <strong>macOS</strong>, profile type <strong>Templates &rarr; Preference file</strong>.</li>' +
+      '<li>Set <strong>Preference domain name</strong> to <code>' + esc(b.domain) + '</code>, paste the fragment as-is (no wrapping <code>&lt;dict&gt;</code> or <code>&lt;plist&gt;</code> tags needed &mdash; this already omits them), and assign to your device group.</li>' +
+      '</ol>';
+  }
+
+  function applyContextUi() {
+    var b = currentBrowser();
+    eyebrowEl.textContent = isWindows()
+      ? (b.key + " · Windows policy · JSON")
+      : (b.domain + " · macOS preference profile");
+    keyChipEl.textContent = b.key;
+    formatBlurbEl.textContent = isWindows()
+      ? "JSON value for the Intune / GPO Windows policy"
+      : "XML fragment for Intune's macOS Preference file profile";
+    segBtns.forEach(function (btn) {
+      if (btn.dataset.platform) btn.setAttribute("aria-pressed", btn.dataset.platform === state.platform ? "true" : "false");
+      if (btn.dataset.browser) btn.setAttribute("aria-pressed", btn.dataset.browser === state.browser ? "true" : "false");
+    });
+    deployEl.innerHTML = deployHtml();
+    var cb = document.getElementById("copyBtn");
+    if (cb) cb.textContent = copyLabel();
+  }
+
+  segBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      if (btn.dataset.platform) {
+        if (state.platform === btn.dataset.platform) return;
+        state.platform = btn.dataset.platform;
+      } else if (btn.dataset.browser) {
+        if (state.browser === btn.dataset.browser) return;
+        state.browser = btn.dataset.browser;
+      }
+      saveState();
+      applyContextUi();
+      updateOutput();
+    });
+  });
+
+  function render() {
+    applyContextUi();
+    treeBodyEl.innerHTML = "";
+    if (!state.tree.length) {
+      var empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "No entries yet — add a bookmark or folder below.";
+      treeBodyEl.appendChild(empty);
+    } else {
+      state.tree.forEach(function (node) { treeBodyEl.appendChild(makeNodeEl(node)); });
+    }
+    document.getElementById("toplevel").value = state.toplevelName || "";
+    updateOutput();
+  }
+
+  document.getElementById("toplevel").addEventListener("input", function (e) {
+    state.toplevelName = e.target.value;
+    saveState();
+    updateOutput();
+  });
+
+  document.getElementById("addBookmarkRoot").addEventListener("click", function () { addNode(null, "bookmark"); });
+  document.getElementById("addFolderRoot").addEventListener("click", function () { addNode(null, "folder"); });
+
+  document.getElementById("loadExample").addEventListener("click", function () {
+    state.toplevelName = "Company Bookmarks";
+    state.tree = defaultTree();
+    saveState();
+    render();
+  });
+
+  document.getElementById("clearAll").addEventListener("click", function () {
+    state.tree = [];
+    saveState();
+    render();
+  });
+
+  var copyBtn = document.getElementById("copyBtn");
+  copyBtn.addEventListener("click", function () {
+    var text = outputEl.dataset.raw || generateOutput();
+    function done(ok) {
+      var original = copyLabel();
+      copyBtn.textContent = ok ? "Copied" : "Copy failed";
+      setTimeout(function () { copyBtn.textContent = original; }, 1400);
+    }
+    try {
+      navigator.clipboard.writeText(text).then(function () { done(true); }).catch(function () { fallbackCopy(); });
+    } catch (e) { fallbackCopy(); }
+
+    function fallbackCopy() {
+      try {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        done(true);
+      } catch (e2) { done(false); }
+    }
+  });
+
+  function parseValue(el) {
+    var tag = el.tagName.toLowerCase();
+    if (tag === "string") return el.textContent;
+    if (tag === "true") return true;
+    if (tag === "false") return false;
+    if (tag === "array") {
+      return Array.prototype.filter.call(el.children, function (c) { return c.tagName.toLowerCase() === "dict"; }).map(parseDict);
+    }
+    return el.textContent;
+  }
+
+  function parseDict(dictEl) {
+    var obj = {};
+    var kids = Array.prototype.filter.call(dictEl.children, function () { return true; });
+    for (var i = 0; i < kids.length; i += 2) {
+      var keyEl = kids[i], valEl = kids[i + 1];
+      if (!keyEl || !valEl || keyEl.tagName.toLowerCase() !== "key") break;
+      obj[keyEl.textContent.trim()] = parseValue(valEl);
+    }
+    return obj;
+  }
+
+  function objToTreeNode(obj) {
+    if (obj && obj.children) {
+      return {
+        id: makeId(),
+        type: "folder",
+        name: obj.name || "",
+        children: obj.children.map(objToTreeNode).filter(Boolean)
+      };
+    }
+    return { id: makeId(), type: "bookmark", name: (obj && obj.name) || "", url: (obj && obj.url) || "" };
+  }
+
+  function showImportStatus(message, ok) {
+    var el = document.getElementById("importStatus");
+    el.textContent = message;
+    el.className = "import-status " + (ok ? "success" : "error");
+    clearTimeout(showImportStatus._t);
+    showImportStatus._t = setTimeout(function () {
+      el.textContent = "";
+      el.className = "import-status";
+    }, 6000);
+  }
+
+  function importXmlText(text) {
+    try {
+      var wrapped = "<root>" + text + "</root>";
+      var doc = new DOMParser().parseFromString(wrapped, "application/xml");
+      if (doc.getElementsByTagName("parsererror").length) {
+        throw new Error("Die Datei ist kein gültiges XML.");
+      }
+
+      var keys = doc.getElementsByTagName("key");
+      var arrayEl = null;
+      var detectedBrowser = null;
+      for (var i = 0; i < keys.length; i++) {
+        var keyName = keys[i].textContent.trim();
+        if (keyName === "ManagedBookmarks" || keyName === "ManagedFavorites") {
+          var sib = keys[i].nextElementSibling;
+          if (sib && sib.tagName.toLowerCase() === "array") {
+            arrayEl = sib;
+            detectedBrowser = keyName === "ManagedFavorites" ? "edge" : "chrome";
+            break;
+          }
+        }
+      }
+      if (!arrayEl) throw new Error("Kein <key>ManagedBookmarks</key>- oder <key>ManagedFavorites</key>-Eintrag in der Datei gefunden.");
+
+      var dicts = Array.prototype.filter.call(arrayEl.children, function (c) { return c.tagName.toLowerCase() === "dict"; });
+      var newTree = [];
+      var newToplevel = "";
+      dicts.forEach(function (dictEl) {
+        var obj = parseDict(dictEl);
+        if (obj.toplevel_name !== undefined && obj.name === undefined) {
+          newToplevel = obj.toplevel_name;
+        } else {
+          newTree.push(objToTreeNode(obj));
+        }
+      });
+
+      state.tree = newTree;
+      state.toplevelName = newToplevel;
+      state.platform = "macos";
+      if (detectedBrowser) state.browser = detectedBrowser;
+      saveState();
+      render();
+      showImportStatus("Import erfolgreich (macOS / " + currentBrowser().label + ") — " + countEntries(newTree) + " Einträge geladen.", true);
+    } catch (err) {
+      showImportStatus("Import fehlgeschlagen: " + err.message, false);
+    }
+  }
+
+  function importJsonText(text) {
+    try {
+      var data = JSON.parse(text);
+      if (!Array.isArray(data)) throw new Error("JSON muss ein Array von Einträgen sein.");
+      var newTree = [];
+      var newToplevel = "";
+      data.forEach(function (obj) {
+        if (obj && obj.toplevel_name !== undefined && obj.name === undefined) {
+          newToplevel = obj.toplevel_name;
+        } else {
+          newTree.push(objToTreeNode(obj));
+        }
+      });
+      state.tree = newTree;
+      state.toplevelName = newToplevel;
+      state.platform = "windows";
+      saveState();
+      render();
+      showImportStatus("Import erfolgreich (Windows / JSON) — " + countEntries(newTree) + " Einträge geladen.", true);
+    } catch (err) {
+      showImportStatus("Import fehlgeschlagen: " + err.message, false);
+    }
+  }
+
+  function importText(text) {
+    var trimmed = (text || "").replace(/^﻿/, "").trim();
+    if (trimmed.charAt(0) === "[" || trimmed.charAt(0) === "{") {
+      importJsonText(trimmed);
+    } else {
+      importXmlText(text);
+    }
+  }
+
+  document.getElementById("importXmlBtn").addEventListener("click", function () {
+    document.getElementById("importXmlFile").click();
+  });
+
+  document.getElementById("importXmlFile").addEventListener("change", function (e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () { importText(String(reader.result || "")); };
+    reader.onerror = function () { showImportStatus("Datei konnte nicht gelesen werden.", false); };
+    reader.readAsText(file);
+    e.target.value = "";
+  });
+
+  loadState();
+  render();
+})();
+</script>
